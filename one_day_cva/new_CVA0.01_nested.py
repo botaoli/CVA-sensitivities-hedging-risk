@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from cva_estimator_portfolio_int import CVAEstimatorPortfolioInt
+from learning.cva_estimator_portfolio_int import CVAEstimatorPortfolioInt
 from simulation.new_val_diffusion_engine import DiffusionEngine
 import time
 import torch

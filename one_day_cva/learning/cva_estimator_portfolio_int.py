@@ -15,8 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with NeuralXVA.  If not, see <https://www.gnu.org/licenses/>.
 
-from generic_estimator import GenericEstimator
-from xva_estimator import XVAEstimatorPortfolio
+from learning.generic_estimator import GenericEstimator
+from learning.xva_estimator import XVAEstimatorPortfolio
 import math
 import numba as nb
 from numba import cuda
