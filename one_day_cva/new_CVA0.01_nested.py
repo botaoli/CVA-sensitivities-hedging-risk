@@ -6,16 +6,27 @@ import time
 import torch
 import matplotlib as mpl
 import pickle
+import sys
 mpl.rcParams['figure.dpi'] = '100'
 np.random.seed(0)
 torch.manual_seed(0)
 torch.backends.cudnn.benchmark = False # don't allow cudnn to tune for every input size
 torch.backends.cudnn.enabled = True
 
+params = np.loadtxt(sys.argv[1])
+
+
+# Parameters used for one day swap
+'''
 num_coarse_steps = 1000
 dT = 0.01
 num_fine_per_coarse = 1
+dt = dT/num_fine_per_coarse'''
+num_coarse_steps = int(params[0])
+dT = 10.0 / num_coarse_steps
+num_fine_per_coarse = int(params[1])
 dt = dT/num_fine_per_coarse
+
 #num_paths = 20000
 #num_inner_paths = 1024 + 2
 #num_defs_per_path = 256
@@ -55,13 +66,28 @@ initial_defaults[:] = 0
 cDtoH_freq = 20
 
 # product specs (DO NOT use the ZCs)
-num_vanillas = 0
+# Parameters used for one day swap
+'''num_vanillas = 0
+vanilla_specs = np.empty(num_vanillas,
+                         dtype=[('maturity', '<f4'), ('notional', '<f4'),
+                                ('strike', '<f4'), ('cpty', '<i4'),
+                                ('undl', '<i4'), ('call_put', '<b1')])'''
+num_vanillas = 500 * (1 - int(params[2]))
 vanilla_specs = np.empty(num_vanillas,
                          dtype=[('maturity', '<f4'), ('notional', '<f4'),
                                 ('strike', '<f4'), ('cpty', '<i4'),
                                 ('undl', '<i4'), ('call_put', '<b1')])
+vanilla_specs['maturity'] = np.random.uniform(0.1,9.5,num_vanillas)
+vanilla_specs['notional'] = 1000. *     ((np.random.choice((-1, 1), num_vanillas, p=(0.5, 0.5)))
+     * np.random.choice(range(1, 6), num_vanillas))
+vanilla_specs['strike'] = abs(1. * np.random.uniform(0.9,1.1, num_vanillas))
+vanilla_specs['cpty'] = np.random.randint(0, num_spreads-1, num_vanillas, np.int32)  # Counterparty with which the swap was entered into
+vanilla_specs['undl'] = np.random.randint(0, num_rates-1, num_vanillas, np.int32)  # Underlying currency
+vanilla_specs['call_put'] = np.random.choice((True, False), num_vanillas, p=(0.5, 0.5))
 
-num_irs = 500
+
+
+num_irs = 500 * int(params[2])
 irs_specs = np.empty(num_irs,
                      dtype=[('first_reset', '<f4'), ('reset_freq', '<f4'),
                             ('notional', '<f4'), ('swap_rate', '<f4'),
@@ -84,7 +110,10 @@ zcs_specs = np.empty(num_zcs,
                             ('cpty', '<i4'), ('undl', '<i4')])
 
 
-device = torch.device('cuda:0')
+out_name = sys.argv[1][sys.argv[1].find('/') + 1:] + '_nested'
+print(num_coarse_steps, dT, num_fine_per_coarse, dt, num_vanillas, num_irs, out_name)
+device = torch.device('cuda:{}'.format(sys.argv[2]))
+print(device)
 
 diffusion_engine = DiffusionEngine(50, 50, num_coarse_steps, dT, num_fine_per_coarse, dt,
                                    num_paths, num_inner_paths, num_defs_per_path, 
@@ -120,7 +149,7 @@ for i,t in enumerate([0,1]):
 y0_CVA_1 = diffusion_engine.nested_cva_save1
 y1_CVA_1 = diffusion_engine.nested_cva_save2
 
-with open('./new_CVA0.01_nested.pickle', 'wb') as f:
+with open('./output/{}'.format(out_name), 'wb') as f:
         data = {}
         
         data['X'] = diffusion_engine.X[1]

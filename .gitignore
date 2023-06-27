@@ -130,3 +130,6 @@ dmypy.json
 
 # trained model
 *.pickle
+
+# one day CVA output
+one_day_cva/output/
