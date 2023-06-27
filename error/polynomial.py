@@ -15,9 +15,56 @@ class error_poly:
         self.factor = 1.0 / (1.0 - alpha) # for convenience
         self.p10 = 1.0 # P^1_0(x)
         self.p11 = self.factor # P^1_1(x)
+        self.q10 = 0.
+        self.q11 = 1.0
 
 
     def p0(self, i: int, x: np.ndarray) -> np.ndarray:
+        """
+        P^i_0(x)
+        """
+        if i < 1:
+            return np.zeros_like(x)
+        elif i == 1:
+            return self.p10 * np.ones_like(x)
+        else:
+            return (1.0 + x) * self.p0(i - 1, x) + x * self.p1(i - 1, x)      
+
+    def p1(self, i: int, x: np.ndarray) -> np.ndarray:
+        """
+        P^i_1(x)
+        """
+        if i < 1:
+            return np.zeros_like(x)
+        if i == 1:
+            return self.p11 * np.ones_like(x)
+        else:
+            return 2.0 * self.factor * self.p0(i, x) + self.factor * self.p0(i - self.m + 1, x)
+
+    def q0(self, i: int, x: np.ndarray) -> np.ndarray:
+        """
+        Q^i_0(x)
+        """
+        if i < 1:
+            return np.zeros_like(x)
+        elif i == 1:
+            return self.q10 * np.ones_like(x)
+        else:
+            return (1.0 + x) * self.q0(i - 1, x) + x * self.q1(i - 1, x)      
+
+    def q1(self, i: int, x: np.ndarray) -> np.ndarray:
+        """
+        P^i_1(x)
+        """
+        if i < 1:
+            return np.zeros_like(x)
+        if i == 1:
+            return self.q11 * np.ones_like(x)
+        else:
+            return 2.0 * self.factor * self.q0(i, x) + self.factor * self.q0(i - self.m + 1, x)
+
+
+    def p0_old(self, i: int, x: np.ndarray) -> np.ndarray:
         """
         P^i_0(x)
         """
@@ -31,7 +78,7 @@ class error_poly:
             return (1 + (1 + 2 * self.factor) * x) * self.p0(i - 1, x) - self.factor * x * (i <= self.m + 1)
         
 
-    def p1(self, i: int, x: np.ndarray) -> np.ndarray:
+    def p1_old(self, i: int, x: np.ndarray) -> np.ndarray:
         """
         P^i_1(x)
         """
