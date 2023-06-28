@@ -41,7 +41,7 @@ class DiffusionEngine:
         self.irs_specs = irs_specs.copy()
         self.irs_specs_startAtPar = self.irs_specs.copy()
         self.zcs_specs = zcs_specs.copy()
-        self.cDtoH_freq = cDtoH_freq
+        self.cDtoH_freq = min(cDtoH_freq, num_coarse_steps)
         self.no_nested_cva = no_nested_cva
         self.no_nested_im = no_nested_im
         self.num_adam_iters = num_adam_iters
