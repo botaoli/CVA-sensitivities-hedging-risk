@@ -161,7 +161,10 @@ nested_CVA = diffusion_engine.nested_cva
 
 cva_portfolio_features_gen_int = cva_estimator_portfolio_int._build_features()
 if not args.method == 'nested':
-    cva_estimator_portfolio_int.train(features_gen=cva_portfolio_features_gen_int, labels_as_cuda_tensors=True, train_time = step_list)
+    if args.method == 'transferred_NN':
+        cva_estimator_portfolio_int.train(features_gen=cva_portfolio_features_gen_int, labels_as_cuda_tensors=True, train_time = None)
+    else:
+        cva_estimator_portfolio_int.train(features_gen=cva_portfolio_features_gen_int, labels_as_cuda_tensors=True, train_time = step_list)
 
 label_gen = cva_estimator_portfolio_int._build_labels()
 labels = {}
