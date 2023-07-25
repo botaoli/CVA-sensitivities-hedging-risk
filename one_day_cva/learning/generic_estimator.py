@@ -26,7 +26,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-# from tqdm.auto import trange, tqdm
+from tqdm.auto import trange, tqdm
 
 def batch_iterate(features, labels, dest_features, dest_labels, batch_size):
     # handy way I came up with to reduce the number of unnecessary memory allocations
