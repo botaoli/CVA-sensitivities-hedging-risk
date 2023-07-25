@@ -26,7 +26,7 @@ class DiffusionEngine:
     def __init__(self, irs_batch_size, vanilla_batch_size, num_coarse_steps, dT, num_fine_per_coarse, dt, num_paths, num_inner_paths, 
                  num_defs_per_path, num_rates, num_spreads, R, rates_params, fx_params,
                  spreads_params, vanilla_specs, irs_specs, zcs_specs,
-                 initial_values, initial_defaults, cDtoH_freq, device=0, no_nested_cva=False, no_nested_im=False, num_adam_iters=100, lam=1, gamma=0.5, adam_b1=0.9, adam_b2=0.999, startAtPar = True, nb_nested = 1):
+                 initial_values, initial_defaults, cDtoH_freq, device=0, no_nested_cva=False, no_nested_im=False, num_adam_iters=100, lam=1, gamma=0.5, adam_b1=0.9, adam_b2=0.999, startAtPar = True, nb_nested = 1, seed_gpu=1):
         cuda.select_device(device)
         self.irs_batch_size = irs_batch_size
         self.vanilla_batch_size = vanilla_batch_size
@@ -138,7 +138,7 @@ class DiffusionEngine:
                                                        self.stream)
         print('Successfully compiled all kernels.')
         self.d_rng_states = None
-        self.reset_rng_states()
+        self.reset_rng_states(seed_gpu)
         
 
     def _allocate_host_arrays(self):
@@ -322,6 +322,7 @@ class DiffusionEngine:
         cuda.to_device(self.def_indicators[:self.cDtoH_freq+1], to=self.d_def_indicators, stream=self.stream)
 
     def generate_batch(self, end=None, verbose=False, fused=False, nested_cva_at=None, nested_im_at=None, indicator_in_cva=False, alpha=None, im_window=None):
+        nested_idx = 0    
         if end is None:
             end = self.num_coarse_steps
         t = 0.
@@ -398,10 +399,11 @@ class DiffusionEngine:
                 _cuda_nested_cva_event_begin[coarse_idx-1].record(stream=self.stream)
                 if coarse_idx in nested_cva_at:
                     self.cuda_nested_cva(idx_in_dev_arr, self.num_coarse_steps-coarse_idx, t, self.d_X, self.d_def_indicators, self.d_dom_rate_integral, self.d_spread_integrals, self.d_mtm_by_cpty, self.d_cash_flows_by_cpty, self.d_irs_f32, self.d_irs_i32, self.d_vanillas_on_fx_f32, self.d_vanillas_on_fx_i32, self.d_vanillas_on_fx_b8, self.d_exp_1, self.d_rng_states, self.dt, self.cDtoH_freq, indicator_in_cva, self.d_nested_cva, self.d_nested_cva_sq, self.d_nested_cva_save1, self.d_nested_cva_save2)
-                    self.d_nested_cva.copy_to_host(ary=self.nested_cva[coarse_idx], stream=self.stream)
-                    self.d_nested_cva_sq.copy_to_host(ary=self.nested_cva_sq[coarse_idx], stream=self.stream)
-                    self.d_nested_cva_save1.copy_to_host(ary=self.nested_cva_save1[coarse_idx], stream=self.stream)
-                    self.d_nested_cva_save2.copy_to_host(ary=self.nested_cva_save2[coarse_idx], stream=self.stream)
+                    self.d_nested_cva.copy_to_host(ary=self.nested_cva[nested_idx], stream=self.stream)
+                    self.d_nested_cva_sq.copy_to_host(ary=self.nested_cva_sq[nested_idx], stream=self.stream)
+                    self.d_nested_cva_save1.copy_to_host(ary=self.nested_cva_save1[nested_idx], stream=self.stream)
+                    self.d_nested_cva_save2.copy_to_host(ary=self.nested_cva_save2[nested_idx], stream=self.stream)
+                    nested_idx += 1
                 _cuda_nested_cva_event_end[coarse_idx-1].record(stream=self.stream)
             
             if nested_im_at is not None:
@@ -486,5 +488,5 @@ class DiffusionEngine:
         np.cumsum(self.cash_pos_by_cpty, axis=0, out=self.cash_pos_by_cpty)
         self.cash_pos_by_cpty *= np.exp(self.dom_rate_integral[:, None, :])
     
-    def reset_rng_states(self):
-        self.d_rng_states = create_xoroshiro128p_states(self.num_paths*(self.num_defs_per_path+self.num_inner_paths), seed=1)
+    def reset_rng_states(self, seed):
+        self.d_rng_states = create_xoroshiro128p_states(self.num_paths*(self.num_defs_per_path+self.num_inner_paths), seed=seed)
